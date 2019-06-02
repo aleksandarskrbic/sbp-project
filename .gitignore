@@ -1,0 +1,4 @@
+.vscode/
+data/
+notebooks/
+src/etl/__pycache__/
