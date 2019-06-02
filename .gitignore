@@ -2,3 +2,4 @@
 data/
 notebooks/
 src/etl/__pycache__/
+src/web/api/__pycache__/
