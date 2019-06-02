@@ -1,6 +1,7 @@
 import logging
 import pymongo
 import pandas as pd
+from datetime import datetime
 import models
 
 
@@ -35,6 +36,7 @@ class ETL():
     def _transform(self) -> None:
         self._clean_dataframes()
         self._join_tables()
+        self._fix_missing_values()
         self._make_collection()
 
     def _clean_dataframes(self) -> None:
@@ -54,6 +56,17 @@ class ETL():
         customer_order_payment_reviews_items = customer_order_payment_reviews.merge(self._order_items, how='left', on='order_id')
         customer_order_payment_reviews_items_products = customer_order_payment_reviews_items.merge(self._products, how='left', on='product_id')
         self._final_table = customer_order_payment_reviews_items_products.merge(self._sellers, how='left', on='seller_id')
+
+    def _fix_missing_values(self) -> None:
+        logging.info('Fixing missing values...')
+        self._final_table['order_purchase_timestamp'].fillna(datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S'), inplace=True)
+        self._final_table['order_delivered_carrier_date'].fillna(datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S'), inplace=True)
+        self._final_table['order_delivered_customer_date'].fillna(datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S'), inplace=True)
+
+        self._final_table['order_purchase_timestamp'] =  self._final_table['order_purchase_timestamp'].apply(lambda x: datetime.strptime(str(x), '%Y-%m-%d %H:%M:%S'))
+        self._final_table['order_delivered_carrier_date'] =  self._final_table['order_delivered_carrier_date'].apply(lambda x: datetime.strptime(str(x), '%Y-%m-%d %H:%M:%S'))
+        self._final_table['order_delivered_customer_date'] =  self._final_table['order_delivered_customer_date'].apply(lambda x: datetime.strptime(str(x), '%Y-%m-%d %H:%M:%S'))
+        self._final_table['payment_type'] = self._final_table['payment_type'].fillna('not_defined')
 
     def _make_collection(self) -> None:
         logging.info('Transforming final DataFrame into Collection...')
