@@ -1,3 +1,5 @@
+from datetime import datetime
+
 class Orders:
     orders_by_state = [
         {'$group': {'_id': '$customer.state', 'count': {'$sum':1}}},
@@ -25,14 +27,26 @@ class Orders:
         {'$limit': 1}
     ]
 
+    orders_by_status = [
+        {'$unwind': '$orders'},
+        {'$group': {'_id': '$orders.order.status', 'count': {'$sum': 1}}},
+    ]
+
     order_reviews = [
         {'$unwind': '$orders'},
         {'$group': {'_id': '$orders.order.review_score', 'count': {'$sum': 1}}}
     ]
 
-    orders_by_status = [
+    order_counts_by_month = [
         {'$unwind': '$orders'},
-        {'$group': {'_id': '$orders.order.status', 'count': {'$sum': 1}}},
+        {'$group': {'_id': {'$month': '$orders.order.purchase_timestamp'}, 'count': {'$sum':1}}},
+        {'$sort': {'count': -1}}
+    ]
+
+    order_avg_spent_by_month = [
+        {'$unwind': '$orders'},
+        {'$group': {'_id': {'$month': '$orders.order.purchase_timestamp'}, 'avg': {'$avg': '$orders.order.payment_value'}}},
+        {'$sort': {'avg': -1}}
     ]
 
 
@@ -51,9 +65,17 @@ class Payments:
         {'$limit': 10}
     ]
 
-    payment_methods_info = [
+    most_popular_payment_method = [
         {'$unwind': '$orders'},
-        {'$group': {'_id': '$orders.order.payment_type', 'count': {'$sum':1}}}
+        {'$group': {'_id': '$orders.order.payment_type', 'count': {'$sum':1}}},
+        {'$sort': {'count': -1}}
+    ]
+
+    avg_spent_by_payment_method = [
+        {'$unwind': '$orders'},
+        {'$group': {'_id': '$orders.order.payment_type', 'avg': {'$avg': '$orders.order.payment_value'}}},
+        {'$sort': {'avg': -1}},
+        {'$limit': 4}
     ]
 
 
@@ -67,32 +89,62 @@ class Products:
 
 
 class Delivery:
-    delivery_prices = [
+    purchase_to_customer_avg_days = [
         {'$unwind': '$orders'},
-        {'$project': {'orders.order.payment_value': 1, 'orders.product.price': 1}},
-        {'$addFields': {
-            'delivery_price': {'$subtract': ['$orders.order.payment_value', '$orders.product.price']}
-            }
+        {'$match': {
+            '$and': [
+                {'orders.order.delivered_customer_date': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}},
+                {'orders.order.delivered_carrier_date': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}},
+                {'orders.order.purchase_timestamp': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}}
+            ]
         }
+        },
+        {'$addFields': {
+            'curier_customer': 
+            {
+                '$ceil':
+                    {'$divide': [
+                        {'$subtract': ['$orders.order.delivered_customer_date', '$orders.order.purchase_timestamp']}, 86400000]
+                    }             
+            }
+        }},
+        {'$group': {'_id': {'$month' : '$orders.order.purchase_timestamp'}, 'avg': {'$avg': '$curier_customer'}}},
+        {'$sort': {'avg': -1}}
     ]
 
-    purchase_curier_days = [
+    purchase_to_deliverer_avg_days = [
         {'$unwind': '$orders'},
-        {'$project': {'orders.order.purchase_timestamp': 1, 'orders.order.delivered_carrier_date': 1}},
+        {'$match': {
+            '$and': [
+                {'orders.order.delivered_customer_date': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}},
+                {'orders.order.delivered_carrier_date': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}},
+                {'orders.order.purchase_timestamp': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}}
+            ]
+        }
+        },
         {'$addFields': {
-            'purchase_curier': 
+            'curier_customer': 
             {
                 '$ceil':
                     {'$divide': [
                         {'$subtract': ['$orders.order.delivered_carrier_date', '$orders.order.purchase_timestamp']}, 86400000]
-                }             
+                    }             
             }
-        }}
+        }},
+        {'$group': {'_id': {'$month' : '$orders.order.purchase_timestamp'}, 'avg': {'$avg': '$curier_customer'}}},
+        {'$sort': {'avg': -1}}
     ]
 
-    curier_customer_days = [
+    deliverer_to_customer_avg_days = [
         {'$unwind': '$orders'},
-        {'$project': {'orders.order.delivered_customer_date': 1, 'orders.order.delivered_carrier_date': 1}},
+        {'$match': {
+            '$and': [
+                {'orders.order.delivered_customer_date': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}},
+                {'orders.order.delivered_carrier_date': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}},
+                {'orders.order.purchase_timestamp': {'$gt': datetime.strptime('0001-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')}}
+            ]
+        }
+        },
         {'$addFields': {
             'curier_customer': 
             {
@@ -101,10 +153,7 @@ class Delivery:
                         {'$subtract': ['$orders.order.delivered_customer_date', '$orders.order.delivered_carrier_date']}, 86400000]
                     }             
             }
-        }}
+        }},
+        {'$group': {'_id': {'$month' : '$orders.order.purchase_timestamp'}, 'avg': {'$avg': '$curier_customer'}}},
+        {'$sort': {'avg': -1}}
     ]
-
-
-#payment_value - payment_type
-#orders by days
-#orders by months

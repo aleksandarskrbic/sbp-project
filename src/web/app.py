@@ -3,7 +3,7 @@ import pymongo
 from bson.code import Code
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from queries import Orders, Payments, Products
+from queries import Orders, Payments, Products, Delivery
 
 
 app = Flask(__name__)
@@ -52,6 +52,18 @@ def order_reviews():
     return jsonify(result)
 
 
+@app.route('/order/months-count', methods=['GET'])
+def orders_by_months():
+    result = list(collection.aggregate(Orders.order_counts_by_month))
+    return jsonify(result)
+    
+
+@app.route('/order/months-avg', methods=['GET'])
+def orders_avg_by_months():
+    result = list(collection.aggregate(Orders.order_avg_spent_by_month))
+    return jsonify(result)
+
+
 @app.route('/payment/state', methods=['GET'])
 def payments_by_state():
     result = list(collection.aggregate(Payments.payments_by_state))
@@ -66,7 +78,13 @@ def payments_by_city():
 
 @app.route('/payment/methods', methods=['GET'])
 def payment_methods_info():
-    result = list(collection.aggregate(Payments.payment_methods_info))
+    result = list(collection.aggregate(Payments.most_popular_payment_method))
+    return jsonify(result)
+
+
+@app.route('/payment/methods-avg', methods=['GET'])
+def avg_spent_by_payment_method():
+    result = list(collection.aggregate(Payments.avg_spent_by_payment_method))
     return jsonify(result)
 
 
@@ -74,6 +92,25 @@ def payment_methods_info():
 def most_popular_product_categories():
     result = list(collection.aggregate(Products.most_popular_product_categories))
     return jsonify(result)
+
+
+@app.route('/delivery/purchase-customer', methods=['GET'])
+def purchase_to_customer_avg_days():
+    result = list(collection.aggregate(Delivery.purchase_to_customer_avg_days))
+    return jsonify(result)
+
+
+@app.route('/delivery/purchase-deliverer', methods=['GET'])
+def purchase_to_deliverer_avg_days():
+    result = list(collection.aggregate(Delivery.purchase_to_deliverer_avg_days))
+    return jsonify(result)
+
+
+@app.route('/delivery/deliverer-customer', methods=['GET'])
+def deliverer_to_customer_avg_days():
+    result = list(collection.aggregate(Delivery.deliverer_to_customer_avg_days))
+    return jsonify(result)
+
 
 
 """
