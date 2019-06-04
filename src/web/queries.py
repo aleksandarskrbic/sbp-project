@@ -34,19 +34,20 @@ class Orders:
 
     order_reviews = [
         {'$unwind': '$orders'},
-        {'$group': {'_id': '$orders.order.review_score', 'count': {'$sum': 1}}}
+        {'$group': {'_id': '$orders.order.review_score', 'count': {'$sum': 1}}},
+        {'$sort': {'_id': 1}}
     ]
 
     order_counts_by_month = [
         {'$unwind': '$orders'},
         {'$group': {'_id': {'$month': '$orders.order.purchase_timestamp'}, 'count': {'$sum':1}}},
-        {'$sort': {'count': -1}}
+        {'$sort': {'_id': 1}}
     ]
 
     order_avg_spent_by_month = [
         {'$unwind': '$orders'},
         {'$group': {'_id': {'$month': '$orders.order.purchase_timestamp'}, 'avg': {'$avg': '$orders.order.payment_value'}}},
-        {'$sort': {'avg': -1}}
+        {'$sort': {'_id': 1}}
     ]
 
 
@@ -68,7 +69,8 @@ class Payments:
     most_popular_payment_method = [
         {'$unwind': '$orders'},
         {'$group': {'_id': '$orders.order.payment_type', 'count': {'$sum':1}}},
-        {'$sort': {'count': -1}}
+        {'$sort': {'count': -1}},
+        {'$limit': 4}
     ]
 
     avg_spent_by_payment_method = [
@@ -84,7 +86,7 @@ class Products:
         {'$unwind': '$orders'},
         {'$group': {'_id': '$orders.product.category', 'count': {'$sum': 1}}},
         {'$sort': {'count': -1}},
-        {'$limit': 10}
+        {'$limit': 5}
     ]
 
 

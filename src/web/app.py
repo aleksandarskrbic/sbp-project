@@ -1,6 +1,5 @@
 import json
 import pymongo
-from bson.code import Code
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from queries import Orders, Payments, Products, Delivery
@@ -112,12 +111,10 @@ def deliverer_to_customer_avg_days():
     return jsonify(result)
 
 
-
-"""
 @app.route('/')
 def index():
     return render_template('index.html')
-"""
+
 
 if __name__ == '__main__':
     app.run()
