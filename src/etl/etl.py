@@ -17,7 +17,7 @@ class ETL():
         self._transform()
         self._load()
     
-    def _init_database(self, url, db_name) -> pymongo.database.Database:
+    def _init_database(self, url, db_name) -> None:
         logging.info('Connecting to MongoDB, url: {}, database name: {}'.format(url, db_name))
         self._client = pymongo.MongoClient(url)
         self._db = self._client[db_name]
